@@ -72,5 +72,47 @@ describe("PapaBase", function () {
       //check donation event
       console.log(donateReceipt?.logs)
     });
+
+    it("create a new papa campaign and donate and withdraw", async function () {
+
+      const { owner, papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
+      console.log(impersonatedSigner.address, "impersonatedSigner")
+      const tx = await papaBase.createCampaign("test campaign", "just a test");
+      const receipt = await tx.wait();
+      //check campaign created
+      expect(await papaBase.campaignCount()).to.equal(1);
+      //check campaign details
+      const campaign = await papaBase.campaigns(1);
+      expect(campaign.name).to.equal("test campaign");
+      //check campaing creation event
+      //console.log(receipt?.logs)
+
+      // approve usdc to contract
+      const approveTx = await usdc.connect(impersonatedSigner).approve(papaBase, 100000000000);
+
+      //donate to campaign
+      const donateTx = await papaBase.connect(impersonatedSigner).depositFunds(1, 1000000);
+      const donateReceipt = await donateTx.wait();
+      //check donation event
+      console.log(donateReceipt?.logs)
+
+      //withdraw from campaign
+      const withdrawTx = await papaBase.connect(owner).campaignWithdrawFunds(1, 100);
+      const withdrawReceipt = await withdrawTx.wait();
+      //check withdraw event
+      console.log(withdrawReceipt?.logs)
+      console.log(await papaBase.campaigns(1))
+      const nowCampaign = await papaBase.campaigns(1);
+      expect(nowCampaign.owner).to.equal(owner);
+      expect(nowCampaign.tokenAmount).to.equal(999900);
+      expect(nowCampaign.hasEnded).to.equal(false);
+      expect(nowCampaign.tokenAddress).to.equal("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
+      expect(nowCampaign.description).to.equal("just a test");
+      expect(nowCampaign.name).to.equal("test campaign");
+      //withdraw all funds
+      const withdrawTx2 = await papaBase.connect(owner).campaignWithdrawFunds(1, 999900);
+      const nowNowCampaign = await papaBase.campaigns(1);
+      expect(nowNowCampaign.tokenAmount).to.equal(0);
+    });
   });
 });
