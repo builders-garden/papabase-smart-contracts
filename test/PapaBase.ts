@@ -13,9 +13,7 @@ describe("PapaBase", function () {
   async function deployPapaBaseContract() {
 
     const usdcTokenAddress = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-    const acceptedTokens = ["0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"]
-    const exchangeProxy = "0xdef1c0ded9bec7f1a1670819833240f027b25eff"
-    const relayer = "0x0000000000000000000000000000000000000000"
+    const accrossContract = "0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64"
 
     // Contracts are deployed using the first signer/account by default
     const [owner, user1, user2, user3] = await ethers.getSigners();
@@ -25,7 +23,7 @@ describe("PapaBase", function () {
     const usdc = await ethers.getContractAt("IERC20", usdcTokenAddress);
 
     const PapaBase = await ethers.getContractFactory("PapaBase");
-    const papaBase = await PapaBase.deploy(usdcTokenAddress, acceptedTokens, exchangeProxy, relayer);
+    const papaBase = await PapaBase.deploy(owner, usdcTokenAddress, accrossContract);
 
     return { papaBase, owner, user1, user2, user3, impersonatedSigner, usdc};
   }
@@ -36,10 +34,7 @@ describe("PapaBase", function () {
 
       // Test deployment
       expect(await papaBase.usdcTokenAddress()).to.equal("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
-      expect(await papaBase.exchangeProxy()).to.equal("0xDef1C0ded9bec7F1a1670819833240f027b25EfF");
-      expect(await papaBase.relayer()).to.equal("0x0000000000000000000000000000000000000000");
       expect(await papaBase.papaBaseAdmin()).to.equal(owner.address);
-      expect(await papaBase.isTokenAccepted("0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb")).to.be.true;
     });
 
     it("create a new papa campaign", async function () {

@@ -2,6 +2,9 @@
 pragma solidity ^0.8.24;
 
 interface IPapaBase { 
+
+    error UnauthorizedSender();
+    error UnauthorizedToken();
     
     event CampaignCreated(
             uint256 campaignId,
