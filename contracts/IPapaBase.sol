@@ -35,6 +35,7 @@ interface IPapaBase {
         string description;
         address tokenAddress;
         uint256 tokenAmount;
+        uint256 endDate;
         bool hasEnded;
     }
 

@@ -70,7 +70,8 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
     // Create a new campaign
     function createCampaign(
         string memory _name,
-        string memory _description
+        string memory _description,
+        uint256 endDate
     ) public {
         // increment campaign count
         unchecked {
@@ -83,6 +84,7 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
             _description,
             usdcTokenAddress,
             0,
+            endDate,
             false
         );
         emit CampaignCreated(campaignCount, msg.sender, _name, _description);
@@ -90,6 +92,7 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
 
     // End a campaign
     function endCampaign(uint256 _campaignId) public {
+        require( campaigns[_campaignId].hasEnded == false, "Campaign has already ended");
         require(campaigns[_campaignId].owner == msg.sender, "You are not the owner of this campaign");
         campaigns[_campaignId].hasEnded = true;
         emit CampaignHasEnded(_campaignId);
@@ -186,6 +189,7 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
 
     function _depositFunds(uint256 _campaignId, uint256 depositAmount, address donor, bool isCrossChainDeposit) internal {
         require(!campaigns[_campaignId].hasEnded, "Campaign has ended");
+        require(block.timestamp <= campaigns[_campaignId].endDate, "Campaign end date reached");
         if(!isCrossChainDeposit) {
             IERC20(usdcTokenAddress).transferFrom(donor, address(this), depositAmount);
         }
@@ -197,9 +201,9 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
         if (usersDonations[donor][_campaignId] == 0) {
             _mint(donor, _campaignId, 1, "");
         }
-        emit DepositFunds (_campaignId, donor, depositAmount);
         campaigns[_campaignId].tokenAmount += depositAmount;
         usersDonations[donor][_campaignId] += depositAmount;
+        emit DepositFunds (_campaignId, donor, depositAmount);
     }
 
     // User deposits USDC from other chains using Across V3 protocol
