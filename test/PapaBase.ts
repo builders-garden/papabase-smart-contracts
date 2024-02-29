@@ -39,7 +39,9 @@ describe("PapaBase", function () {
 
     it("create a new papa campaign", async function () {
       const { papaBase, owner } = await loadFixture(deployPapaBaseContract);
-      const tx = await papaBase.createCampaign("test campaign", "just a test");
+      // get block.timestamp + 1 day
+      const endDate = await time.latest() * 2;
+      const tx = await papaBase.createCampaign("test campaign", "just a test",endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -53,7 +55,8 @@ describe("PapaBase", function () {
     it("create a new papa campaign and donate", async function () {
       const { papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
       console.log(impersonatedSigner.address, "impersonatedSigner")
-      const tx = await papaBase.createCampaign("test campaign", "just a test");
+      const endDate = await time.latest() * 2;
+      const tx = await papaBase.createCampaign("test campaign", "just a test", endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -77,7 +80,8 @@ describe("PapaBase", function () {
 
       const { owner, papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
       console.log(impersonatedSigner.address, "impersonatedSigner")
-      const tx = await papaBase.createCampaign("test campaign", "just a test");
+      const endDate = await time.latest() * 2;
+      const tx = await papaBase.createCampaign("test campaign", "just a test", endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -119,7 +123,8 @@ describe("PapaBase", function () {
 
       const { owner, papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
       console.log(impersonatedSigner.address, "impersonatedSigner")
-      const tx = await papaBase.createCampaign("test campaign", "just a test");
+      const endDate = await time.latest() * 2;
+      const tx = await papaBase.createCampaign("test campaign", "just a test", endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);

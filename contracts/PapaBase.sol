@@ -14,6 +14,8 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
 
     mapping(address => mapping(uint256 => uint256)) public usersDonations;
 
+    mapping(address => mapping(uint256 => bool)) public userHasDonated;
+
     mapping(uint256 => PapaRecurringDeposit) public usersRecurringDeposits;
 
 
@@ -198,8 +200,9 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
             _mint(papaBaseAdmin, _campaignId, 1, "");
         }
         // mint NFT when making the first deposit
-        if (usersDonations[donor][_campaignId] == 0) {
+        if (userHasDonated[donor][_campaignId] == false && usersDonations[donor][_campaignId] == 0) {
             _mint(donor, _campaignId, 1, "");
+            userHasDonated[donor][_campaignId] = true;
         }
         campaigns[_campaignId].tokenAmount += depositAmount;
         usersDonations[donor][_campaignId] += depositAmount;
