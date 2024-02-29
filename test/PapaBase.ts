@@ -165,7 +165,5 @@ describe("PapaBase", function () {
       const nowNowCampaign = await papaBase.campaigns(1);
       expect(nowNowCampaign.tokenAmount).to.equal(0);
     });
-
-    
   });
 });
