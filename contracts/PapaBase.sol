@@ -3,17 +3,23 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import "./IPapaBase.sol";
 
 pragma solidity ^0.8.24;
 
-contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply {
+contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompatibleInterface {
 
     mapping(uint256 => PapaCampaign) public campaigns;
 
     mapping(address => mapping(uint256 => uint256)) public usersDonations;
 
+    mapping(uint256 => PapaRecurringDeposit) public usersRecurringDeposits;
+
+
     uint256 public campaignCount;
+
+    uint256 public recurringDepositCount;
 
     address public usdcTokenAddress; //0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 usdc on Base
 
@@ -99,8 +105,83 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply {
     }
 
     // User deposit funds to a campaign. Directly deposit USDC
-    function depositFunds(uint256 _campaignId, uint256 depositAmount) public {
-        _depositFunds(_campaignId, depositAmount, msg.sender, false);
+    function depositFunds(uint256 campaignId, uint256 depositAmount) public {
+        _depositFunds(campaignId, depositAmount, msg.sender, false);
+    }
+
+    // User deposit funds to a campaign. Recurring deposit
+    function depositFundsRecurring(address donor, uint256 campaignId, uint256 recurringAmount, uint256 donationTimes, uint256 donationInterval) public {
+        // calculate total donation amount
+        uint256 totalDonationAmount = recurringAmount * donationTimes;
+        // transfer USDC from donor to contract
+        IERC20(usdcTokenAddress).transferFrom(msg.sender, address(this), totalDonationAmount);
+        // deposit first amount
+        _depositFunds(campaignId, recurringAmount, donor, true);
+        uint256 donationAmountLeft = totalDonationAmount - recurringAmount;
+        // increment campaign count
+        unchecked {
+            recurringDepositCount++;
+        }
+        // create and store new recurring deposit
+        usersRecurringDeposits[recurringDepositCount] = PapaRecurringDeposit(
+            donor,
+            campaignId,
+            totalDonationAmount, 
+            donationAmountLeft,
+            recurringAmount,
+            donationInterval,
+            block.timestamp,
+            block.timestamp + donationInterval,
+            false
+        );
+        emit RecurringDespositCreated(campaignId, donor, totalDonationAmount, recurringAmount, donationInterval);
+    }
+
+    // Relayer trigger the recurring deposit transactions on behalf of the user
+    function triggerRecurringDeposit(uint256 recurringDepositId) public {
+        PapaRecurringDeposit storage recurringDeposit = usersRecurringDeposits[recurringDepositId];
+        require(recurringDeposit.hasEnded == false, "Recurring deposit has ended");
+        require(recurringDeposit.donationAmountLeft > 0, "No donation amount left");
+        require(recurringDeposit.nextDepositTime <= block.timestamp, "It's not time to deposit yet");
+        _depositFunds(recurringDeposit.campaignId, recurringDeposit.recurringDepositAmount, recurringDeposit.user, true);
+        recurringDeposit.donationAmountLeft -= recurringDeposit.recurringDepositAmount;
+        recurringDeposit.lastDepositTime = block.timestamp;
+        recurringDeposit.nextDepositTime = block.timestamp + recurringDeposit.depositFrequency;
+        if (recurringDeposit.donationAmountLeft == 0) {
+            recurringDeposit.hasEnded = true;
+        }
+    }
+
+    // Withdraw funds from a recurring deposit
+    function withdrawRecurringDeposit(uint256 recurringDepositId) public {
+        PapaRecurringDeposit storage recurringDeposit = usersRecurringDeposits[recurringDepositId];
+        require(recurringDeposit.user == msg.sender, "You are not the owner of this recurring deposit");
+        require(recurringDeposit.donationAmountLeft > 0, "No donation amount left");
+        IERC20(usdcTokenAddress).transfer(msg.sender, recurringDeposit.donationAmountLeft);
+        recurringDeposit.donationAmountLeft = 0;
+        recurringDeposit.hasEnded = true;
+    }
+
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory /* performData */)
+    {
+        for (uint256 i = 1; i <= recurringDepositCount; i++) {
+            PapaRecurringDeposit storage recurringDeposit = usersRecurringDeposits[i];
+            if (recurringDeposit.hasEnded == false && recurringDeposit.nextDepositTime <= block.timestamp) {
+                return (true, abi.encode(i));
+            }
+        }
+    }
+
+    function performUpkeep(bytes calldata performData) external override {
+        // decode recurring deposit id
+        (uint256 recurringDepositId) = abi.decode(performData, (uint256));
+        triggerRecurringDeposit(recurringDepositId);
     }
 
     function _depositFunds(uint256 _campaignId, uint256 depositAmount, address donor, bool isCrossChainDeposit) internal {
@@ -108,18 +189,20 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply {
         if(!isCrossChainDeposit) {
             IERC20(usdcTokenAddress).transferFrom(donor, address(this), depositAmount);
         }
+        // mint admin NFT for XMTP groups purposes
         if(campaigns[_campaignId].tokenAmount == 0) {
-            // mint admin NFT for XMTP groups purposes
             _mint(papaBaseAdmin, _campaignId, 1, "");
         }
-        // mint NFT
-        _mint(donor, _campaignId, 1, "");
+        // mint NFT when making the first deposit
+        if (usersDonations[donor][_campaignId] == 0) {
+            _mint(donor, _campaignId, 1, "");
+        }
         emit DepositFunds (_campaignId, donor, depositAmount);
         campaigns[_campaignId].tokenAmount += depositAmount;
         usersDonations[donor][_campaignId] += depositAmount;
     }
 
-    // User deposits USDC from other chains
+    // User deposits USDC from other chains using Across V3 protocol
     function handleV3AcrossMessage(
         address tokenSent, // tokenSent is unused
         uint256 amount,

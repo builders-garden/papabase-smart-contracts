@@ -21,12 +21,32 @@ interface IPapaBase {
 
     event PendingDeposit(uint256 campaignId, address user, uint256 depositAmount);
 
+    event RecurringDespositCreated(
+        uint256 campaignId,
+        address user,
+        uint256 totalDepositAmount,
+        uint256 recurringDepositAmount,
+        uint256 depositFrequency
+    );
+
     struct PapaCampaign {
         address owner;
         string name;
         string description;
         address tokenAddress;
         uint256 tokenAmount;
+        bool hasEnded;
+    }
+
+    struct PapaRecurringDeposit {
+        address user;
+        uint256 campaignId;
+        uint256 totalDepositAmount;
+        uint256 donationAmountLeft;
+        uint256 recurringDepositAmount;
+        uint256 depositFrequency;
+        uint256 lastDepositTime;
+        uint256 nextDepositTime;
         bool hasEnded;
     }
 }
