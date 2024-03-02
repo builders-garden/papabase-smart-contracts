@@ -72,9 +72,8 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
     // Create a new campaign
     function createCampaign(
         string memory _name,
-        string memory _description,
         uint256 endDate
-    ) public {
+    ) public returns (uint256){
         // increment campaign count
         unchecked {
             campaignCount++;
@@ -83,13 +82,13 @@ contract PapaBase is IPapaBase, ERC1155, Ownable, ERC1155Supply, AutomationCompa
         campaigns[campaignCount] = PapaCampaign(
             msg.sender,
             _name,
-            _description,
             usdcTokenAddress,
             0,
             endDate,
             false
         );
-        emit CampaignCreated(campaignCount, msg.sender, _name, _description);
+        emit CampaignCreated(campaignCount, msg.sender, _name);
+        return(campaignCount);
     }
 
     // End a campaign

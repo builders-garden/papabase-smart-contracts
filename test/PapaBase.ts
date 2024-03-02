@@ -41,7 +41,7 @@ describe("PapaBase", function () {
       const { papaBase, owner } = await loadFixture(deployPapaBaseContract);
       // get block.timestamp + 1 day
       const endDate = await time.latest() * 2;
-      const tx = await papaBase.createCampaign("test campaign", "just a test",endDate);
+      const tx = await papaBase.createCampaign("test campaign",endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -56,7 +56,7 @@ describe("PapaBase", function () {
       const { papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
       console.log(impersonatedSigner.address, "impersonatedSigner")
       const endDate = await time.latest() * 2;
-      const tx = await papaBase.createCampaign("test campaign", "just a test", endDate);
+      const tx = await papaBase.createCampaign("test campaign", endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -81,7 +81,7 @@ describe("PapaBase", function () {
       const { owner, papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
       console.log(impersonatedSigner.address, "impersonatedSigner")
       const endDate = await time.latest() * 2;
-      const tx = await papaBase.createCampaign("test campaign", "just a test", endDate);
+      const tx = await papaBase.createCampaign("test campaign", endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -111,7 +111,6 @@ describe("PapaBase", function () {
       expect(nowCampaign.tokenAmount).to.equal(999900);
       expect(nowCampaign.hasEnded).to.equal(false);
       expect(nowCampaign.tokenAddress).to.equal("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
-      expect(nowCampaign.description).to.equal("just a test");
       expect(nowCampaign.name).to.equal("test campaign");
       //withdraw all funds
       const withdrawTx2 = await papaBase.connect(owner).campaignWithdrawFunds(1, 999900);
@@ -124,7 +123,7 @@ describe("PapaBase", function () {
       const { owner, papaBase, impersonatedSigner, usdc } = await loadFixture(deployPapaBaseContract);
       console.log(impersonatedSigner.address, "impersonatedSigner")
       const endDate = await time.latest() * 2;
-      const tx = await papaBase.createCampaign("test campaign", "just a test", endDate);
+      const tx = await papaBase.createCampaign("test campaign", endDate);
       const receipt = await tx.wait();
       //check campaign created
       expect(await papaBase.campaignCount()).to.equal(1);
@@ -163,7 +162,6 @@ describe("PapaBase", function () {
       expect(nowCampaign.tokenAmount).to.equal(999900);
       expect(nowCampaign.hasEnded).to.equal(true);
       expect(nowCampaign.tokenAddress).to.equal("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913");
-      expect(nowCampaign.description).to.equal("just a test");
       expect(nowCampaign.name).to.equal("test campaign");
       //withdraw all funds
       const withdrawTx2 = await papaBase.connect(owner).campaignWithdrawFunds(1, 999900);

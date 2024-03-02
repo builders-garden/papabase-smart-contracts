@@ -7,10 +7,9 @@ interface IPapaBase {
     error UnauthorizedToken();
     
     event CampaignCreated(
-            uint256 campaignId,
-            address owner,
-            string name,
-            string description
+        uint256 campaignId,
+        address owner,
+        string name
     );
 
     event CampaignHasEnded(uint256 campaignId);
@@ -32,7 +31,6 @@ interface IPapaBase {
     struct PapaCampaign {
         address owner;
         string name;
-        string description;
         address tokenAddress;
         uint256 tokenAmount;
         uint256 endDate;
